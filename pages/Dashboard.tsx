@@ -7,28 +7,34 @@ import { PollCard } from '../components/PollCard';
 
 const Dashboard: React.FC = () => {
   const [polls, setPolls] = useState<Poll[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
-  const loadPolls = () => {
-    setPolls(getPolls());
+  const loadPolls = async () => {
+    setIsLoading(true);
+    const data = await getPolls();
+    setPolls(data);
+    setIsLoading(false);
   };
 
   useEffect(() => {
     loadPolls();
-    window.addEventListener('pollUpdate', loadPolls);
-    window.addEventListener('storage', loadPolls);
-    return () => {
-      window.removeEventListener('pollUpdate', loadPolls);
-      window.removeEventListener('storage', loadPolls);
-    };
   }, []);
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Are you sure you want to delete this poll?')) {
-      deletePoll(id);
+      await deletePoll(id);
       loadPolls();
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">

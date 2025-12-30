@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Poll } from '../types';
-import { getPolls, voteInPoll } from '../store/pollStore';
+import { getPollById, voteInPoll } from '../store/pollStore';
 
 const VotePage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -10,38 +10,48 @@ const VotePage: React.FC = () => {
   const [poll, setPoll] = useState<Poll | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const polls = getPolls();
-    const found = polls.find(p => p.id === id);
-    if (!found) {
-      navigate('/');
-      return;
-    }
-    setPoll(found);
-    
-    // Simple client-side vote check using localStorage
-    const votedList = JSON.parse(localStorage.getItem('voted_polls') || '[]');
-    if (votedList.includes(id)) {
-      setHasVoted(true);
-    }
+    const loadPoll = async () => {
+      if (!id) return;
+      const found = await getPollById(id);
+      if (!found) {
+        navigate('/');
+        return;
+      }
+      setPoll(found);
+      setIsLoading(false);
+      
+      const votedList = JSON.parse(localStorage.getItem('voted_polls') || '[]');
+      if (votedList.includes(id)) {
+        setHasVoted(true);
+      }
+    };
+    loadPoll();
   }, [id, navigate]);
 
-  const handleVote = () => {
+  const handleVote = async () => {
     if (!id || !selectedOption) return;
     
-    voteInPoll(id, selectedOption);
+    await voteInPoll(id, selectedOption);
     
-    // Mark as voted locally
     const votedList = JSON.parse(localStorage.getItem('voted_polls') || '[]');
     localStorage.setItem('voted_polls', JSON.stringify([...votedList, id]));
     
     setHasVoted(true);
-    // Auto redirect to results after 2 seconds
     setTimeout(() => {
       navigate(`/results/${id}`);
     }, 1500);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   if (!poll) return null;
 

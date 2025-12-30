@@ -9,6 +9,7 @@ const CreatePoll: React.FC = () => {
   const [question, setQuestion] = useState('');
   const [options, setOptions] = useState(['', '']);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [topic, setTopic] = useState('');
 
   const handleAddOption = () => {
@@ -26,14 +27,21 @@ const CreatePoll: React.FC = () => {
     setOptions(options.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!question.trim() || options.filter(o => o.trim()).length < 2) {
       alert('Please enter a question and at least two options.');
       return;
     }
-    const newPoll = createPoll(question, options);
-    navigate(`/results/${newPoll.id}`);
+    setIsSaving(true);
+    try {
+      const newPoll = await createPoll(question, options);
+      navigate(`/results/${newPoll.id}`);
+    } catch (e) {
+      alert('Failed to save poll. Check your API connection.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleAISuggest = async () => {
@@ -140,9 +148,10 @@ const CreatePoll: React.FC = () => {
         <div className="pt-4 border-t border-slate-100 flex gap-4">
           <button
             type="submit"
-            className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all"
+            disabled={isSaving}
+            className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white py-4 rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all"
           >
-            Create Poll
+            {isSaving ? 'Creating...' : 'Create Poll'}
           </button>
           <button
             type="button"

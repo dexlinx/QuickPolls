@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Poll } from '../types';
-import { getPolls } from '../store/pollStore';
+import { getPollById } from '../store/pollStore';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { analyzePollResults } from '../services/geminiService';
 
@@ -14,24 +14,22 @@ const ResultsPage: React.FC = () => {
   const [poll, setPoll] = useState<Poll | null>(null);
   const [analysis, setAnalysis] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const refreshPoll = useCallback(() => {
-    const polls = getPolls();
-    const found = polls.find(p => p.id === id);
+  const refreshPoll = useCallback(async () => {
+    if (!id) return;
+    const found = await getPollById(id);
     if (found) {
       setPoll(found);
     }
+    setIsLoading(false);
   }, [id]);
 
   useEffect(() => {
     refreshPoll();
-    // Real-time synchronization within the same browser
-    window.addEventListener('pollUpdate', refreshPoll);
-    window.addEventListener('storage', refreshPoll);
-    return () => {
-      window.removeEventListener('pollUpdate', refreshPoll);
-      window.removeEventListener('storage', refreshPoll);
-    };
+    // Real-time polling every 3 seconds to get updates from other users
+    const interval = setInterval(refreshPoll, 3000);
+    return () => clearInterval(interval);
   }, [refreshPoll]);
 
   const handleAnalyze = async () => {
@@ -47,6 +45,14 @@ const ResultsPage: React.FC = () => {
     navigator.clipboard.writeText(link);
     alert('Voting link copied!');
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
 
   if (!poll) return null;
 

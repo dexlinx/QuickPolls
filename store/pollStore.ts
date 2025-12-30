@@ -1,20 +1,31 @@
 
 import { Poll, PollOption } from '../types';
 
-const STORAGE_KEY = 'quickpoll_data_v1';
+// IMPORTANT: Replace this with your actual DreamHost API URL
+const API_URL = 'https://yourdomain.com/api.php';
 
-export const getPolls = (): Poll[] => {
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+export const getPolls = async (): Promise<Poll[]> => {
+  try {
+    const response = await fetch(API_URL);
+    if (!response.ok) throw new Error('Failed to fetch');
+    return await response.json();
+  } catch (error) {
+    console.error("API Error:", error);
+    return [];
+  }
 };
 
-export const savePolls = (polls: Poll[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(polls));
-  // Dispatch custom event for real-time sync across components in the same window
-  window.dispatchEvent(new Event('pollUpdate'));
+export const getPollById = async (id: string): Promise<Poll | null> => {
+  try {
+    const response = await fetch(`${API_URL}?id=${id}`);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch (error) {
+    return null;
+  }
 };
 
-export const createPoll = (question: string, optionTexts: string[]): Poll => {
+export const createPoll = async (question: string, optionTexts: string[]): Promise<Poll> => {
   const newPoll: Poll = {
     id: Math.random().toString(36).substr(2, 9),
     question,
@@ -28,30 +39,25 @@ export const createPoll = (question: string, optionTexts: string[]): Poll => {
     totalVotes: 0
   };
   
-  const polls = getPolls();
-  savePolls([newPoll, ...polls]);
+  await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(newPoll)
+  });
+
   return newPoll;
 };
 
-export const voteInPoll = (pollId: string, optionId: string) => {
-  const polls = getPolls();
-  const updatedPolls = polls.map(poll => {
-    if (poll.id === pollId) {
-      const updatedOptions = poll.options.map(opt => 
-        opt.id === optionId ? { ...opt, votes: opt.votes + 1 } : opt
-      );
-      return { 
-        ...poll, 
-        options: updatedOptions, 
-        totalVotes: poll.totalVotes + 1 
-      };
-    }
-    return poll;
+export const voteInPoll = async (pollId: string, optionId: string) => {
+  await fetch(API_URL, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pollId, optionId })
   });
-  savePolls(updatedPolls);
 };
 
-export const deletePoll = (pollId: string) => {
-  const polls = getPolls();
-  savePolls(polls.filter(p => p.id !== pollId));
+export const deletePoll = async (pollId: string) => {
+  await fetch(`${API_URL}?id=${pollId}`, {
+    method: 'DELETE'
+  });
 };
