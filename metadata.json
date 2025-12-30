@@ -1,0 +1,7 @@
+{
+  "name": "QuickPoll AI",
+  "description": "A real-time polling application for educators and students, featuring AI-powered poll generation and result analysis.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
