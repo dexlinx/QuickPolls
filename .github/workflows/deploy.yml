@@ -1,0 +1,23 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [ main ]  # Or your default branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Rsync to Server
+      env:
+        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        SERVER_USER: dh_2nxrvq
+        SERVER_HOST: vps22240.dreamhostps.com
+        TARGET_DIR: /home/dh_2nxrvq/quickpolls.fivebrokenloaves.com/  # e.g., where your code lives
+      run: |
+        echo "$DEPLOY_KEY" > deploy_key
+        chmod 600 deploy_key
+        rsync -avz --delete -e "ssh -i deploy_key -o StrictHostKeyChecking=no" ./ $SERVER_USER@$SERVER_HOST:$TARGET_DIR
+        rm deploy_key
