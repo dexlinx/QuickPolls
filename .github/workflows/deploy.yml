@@ -2,22 +2,28 @@ name: Deploy to VPS
 
 on:
   push:
-    branches: [ main ]  # Or your default branch
+    branches:
+      - main  # Change if you deploy from a different branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
 
-    - name: Rsync to Server
-      env:
-        DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-        SERVER_USER: dh_2nxrvq
-        SERVER_HOST: vps22240.dreamhostps.com
-        TARGET_DIR: /home/dh_2nxrvq/quickpolls.fivebrokenloaves.com/  # e.g., where your code lives
-      run: |
-        echo "$DEPLOY_KEY" > deploy_key
-        chmod 600 deploy_key
-        rsync -avz --delete -e "ssh -i deploy_key -o StrictHostKeyChecking=no" ./ $SERVER_USER@$SERVER_HOST:$TARGET_DIR
-        rm deploy_key
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_DEPLOY_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H your.vps.ip >> ~/.ssh/known_hosts
+
+      - name: Deploy to VPS
+        run: |
+          ssh dh_2nxrvq@vps22240.dreamhostps.com "
+            cd /quickpolls.fivebrokenloaves.com/|| exit;
+            git pull origin main;
+            # optionally run build commands, e.g., npm install && npm run build
+          "
